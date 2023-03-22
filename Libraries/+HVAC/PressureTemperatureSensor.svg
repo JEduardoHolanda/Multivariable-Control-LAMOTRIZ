@@ -1,0 +1,17 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5d -->
+<!-- CreationDate: Fri Feb 26 20:25:12 2016 -->
+<!-- Magnification: 1.050 -->
+<svg width="8560" height="8513" xmlns="http://www.w3.org/2000/svg" xmlns:d="http://www.mathworks.com/blockgraphics">
+ <g>
+  <title>Layer 1</title>
+  <!-- Circle -->
+  <circle fill-opacity="0" d:options="Port:L0" fill="#000000" id="svg_2" stroke="#000000" stroke-width="8" r="2362" cy="4251" cx="4251"/>
+  <!-- Line: box -->
+  <rect fill-opacity="0" d:options="Port:L0" fill="#000000" id="svg_3" stroke="#000000" stroke-width="8" height="8488" width="8535" y="0" x="-31"/>
+  <!-- Line -->
+  <polygon fill-opacity="0" d:options="Port:L0" fill="#000000" id="svg_4" stroke="#000000" stroke-width="8" points="5398,3102 4059,3826 4705,4440 5445,3070 5398,3102 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" id="svg_5" stroke="#000000" stroke-width="8" points="3070,5433 4393,4110 "/>
+ </g>
+</svg>

@@ -1,0 +1,31 @@
+component AbsoluteReference
+% Absolute Reference : 0.8
+% This block represents a reference node in a moist air network where
+% pressure, temperature, and water vapor mass fraction are equal to
+% absolute zero.
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    A = HVAC.MoistAir; % :top
+end
+
+variables (ExternalAccess=observe)
+    mdot   = {1e-6, 'kg/s'}; % Mixture mass flow rate
+    Phi    = {0,    'kW'  }; % Energy flow rate
+    mdot_w = {0,    'kg/s'}; % Water vapor mass flow rate
+end
+
+branches
+    mdot   : A.mdot   -> *;
+    Phi    : A.Phi    -> *;
+    mdot_w : A.mdot_w -> *;
+end
+
+equations
+    A.p   == 0;
+    A.T   == 0;
+    A.x_w == 0;
+end
+
+end

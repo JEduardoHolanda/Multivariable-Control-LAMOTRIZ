@@ -1,0 +1,25 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5e -->
+<!-- CreationDate: Thu Feb  9 14:44:00 2017 -->
+<!-- Magnification: 1.050 -->
+<svg width="5694" height="5694" xmlns="http://www.w3.org/2000/svg">
+ <g>
+  <title>Layer 1</title>
+  <g id="svg_1" stroke-width=".025in" fill="none">
+   <!-- Arc -->
+   <path id="svg_2" stroke="#000000" stroke-width="8" d="m1889,661a1654,1654 0 0 0 2362,47"/>
+   <!-- Arc -->
+   <path id="svg_3" stroke="#000000" stroke-width="8" d="m1889,2125a1712,1712 0 0 1 2362,0"/>
+   <!-- Arc -->
+   <path id="svg_4" stroke="#000000" stroke-width="8" d="m1889,4960a1712,1712 0 0 1 2362,0"/>
+   <!-- Arc -->
+   <path id="svg_5" stroke="#000000" stroke-width="8" d="m1889,3496a1654,1654 0 0 0 2362,47"/>
+   <!-- Line: box -->
+   <rect id="svg_6" stroke="#ffffff" stroke-width="8" height="5669" width="5669" y="0" x="0"/>
+   <!-- Line -->
+   <polyline id="svg_7" stroke="#000000" stroke-width="8" points="0,1417 5669,1417 "/>
+   <!-- Line -->
+   <polyline id="svg_8" stroke="#000000" stroke-width="8" points="1417,1417 1417,4251 5669,4251 "/>
+  </g>
+ </g>
+</svg>

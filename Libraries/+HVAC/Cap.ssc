@@ -1,0 +1,13 @@
+component Cap
+% Cap : 0.5
+% This block represents a terminus in a moist air network. There is no mass
+% nor energy flow through the cap. Connect the cap to any unused moist air
+% conserving ports.
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    A = HVAC.MoistAir; % :top
+end
+
+end

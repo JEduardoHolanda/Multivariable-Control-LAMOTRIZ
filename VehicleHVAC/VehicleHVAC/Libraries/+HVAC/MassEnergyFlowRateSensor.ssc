@@ -1,0 +1,52 @@
+component MassEnergyFlowRateSensor
+% Mass & Energy Flow Rate Sensor
+% This block measures mass flow rate and energy flow rate in a moist air
+% network. The energy flow rate is the advection of enthalpy. There is no
+% change in pressure or temperature across the sensor.
+%
+% The physical signal ports M, Mw, and Phi report the total mass flow rate
+% [kg/s], the water vapor mass flow rate [kg/s], and the energy flow rate
+% [W], respectively, through the sensor. Positive measurements indicate
+% that the flow direction is from port A to port B.
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    A = HVAC.MoistAir; % A:left
+    B = HVAC.MoistAir; % B:right
+end
+
+outputs
+    % Total mass flow rate from port A to port B
+    M   = {0, 'kg/s'}; % M:right
+    % Water vapor mass flow rate from port A to port B
+    Mw  = {0, 'kg/s'}; % Mw:right
+    % Energy flow rate from port A to port B
+    PHI = {0, 'W'   }; % Phi:right
+end
+
+variables (ExternalAccess=none)
+    mdot   = {1e-6, 'kg/s'}; % Mass flow from port A to port B
+    Phi    = {0,    'kW'  }; % Energy flow rate from A to port B
+    mdot_w = {0,    'kg/s'}; % Water vapor mass flow rate from port A to port B
+end
+
+branches
+    mdot   : A.mdot   -> B.mdot;
+    Phi    : A.Phi    -> B.Phi;
+    mdot_w : A.mdot_w -> B.mdot_w;
+end
+
+equations
+    % No change in pressure, temperature, or water vapor mass fraction
+    A.p   == B.p;
+    A.T   == B.T;
+    A.x_w == B.x_w;
+
+    % Measured mass and energy flow rates
+    M   == mdot;
+    Mw  == mdot_w;
+    PHI == Phi;
+end
+
+end

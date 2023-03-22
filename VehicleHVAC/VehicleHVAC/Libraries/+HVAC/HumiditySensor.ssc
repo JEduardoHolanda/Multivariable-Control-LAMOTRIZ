@@ -1,0 +1,66 @@
+component HumiditySensor
+% Humidity Sensor
+% This block measures relative humidity in a moist air network. There is no
+% mass or energy flow through the sensor.
+%
+% The physical signal ports RH and HR report the relative humidity and
+% humidity ratio, respectively, measured at port A.
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    A = HVAC.MoistAir; % A:left
+end
+
+outputs
+    % Relative humidity at port A
+    RH = {0, '1'}; % RH:right
+    % Humidity ratio at port A
+    HR = {0, '1'}; % HR:right
+end
+
+variables (ExternalAccess=none)
+    RH_A        = {0.5, '1'}; % Relative humidity at port A
+    log_p_w_sat = {8,   '1'}; % Log of water vapor saturation pressure
+end
+
+equations
+    let
+        % Domain parameters
+        R_da          = A.R_da;
+        R_w           = A.R_w;
+        p_w_sat_coeff = A.p_w_sat_coeff;
+
+        % Across variables
+        p_A   = A.p;
+        T_A   = A.T;
+        x_w_A = A.x_w;
+
+        % Water vapor partial pressure
+        p_w_sat = {exp(log_p_w_sat), 'Pa'};
+        p_w_A = RH_A * p_w_sat;
+
+        % Temperature value in Kelvin
+        T_A_val = value(T_A, 'K');
+    in
+        % Water vapor mass fraction
+        x_w_A * R_w * (p_A - p_w_A) == (1 - x_w_A) * R_da * p_w_A;
+
+        % Water vapor saturation pressure
+        log_p_w_sat == ...
+            p_w_sat_coeff(1)/T_A_val + ...
+            p_w_sat_coeff(2) + ...
+            p_w_sat_coeff(3)*T_A_val + ...
+            p_w_sat_coeff(4)*T_A_val^2 + ...
+            p_w_sat_coeff(5)*T_A_val^3 + ...
+            p_w_sat_coeff(6)*log(T_A_val);
+
+        % Relative humidity measurement
+        RH == RH_A;
+
+        % Humidity ratio measurement
+        HR == x_w_A / (1 - x_w_A);
+    end
+end
+
+end

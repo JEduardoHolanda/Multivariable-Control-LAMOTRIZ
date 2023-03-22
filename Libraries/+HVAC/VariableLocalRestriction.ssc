@@ -1,0 +1,124 @@
+component VariableLocalRestriction < HVAC.TwoPortBase
+% Variable Local Restriction : 1.5
+% This block models the pressure loss due to a variable restriction in flow
+% area such as a valve or an orifice in a moist air network. The
+% restriction area [m^2] is set by the physical signal port AR. It
+% saturates at the Minimum restriction area and the Maximum restriction
+% area. There is no heat exchange with the environment.
+
+% Copyright 2017 The MathWorks, Inc.
+
+inputs
+    AR = {1e-3, 'm^2'}; % AR:left
+end
+
+parameters
+    min_area = {1e-10, 'm^2'}; % Minimum restriction area
+    max_area = {0.005, 'm^2'}; % Maximum restriction area
+    area     = {0.01,  'm^2'}; % Cross-sectional area at ports A and B
+    Cd       = {0.64,  '1'  }; % Discharge coefficient
+    B_lam    = {0.999, '1'  }; % Laminar flow pressure ratio
+end
+
+variables (ExternalAccess=none)
+    rho_avg = {1.2, 'kg/m^3'}; % Average mixture density
+end
+
+function setup
+
+if area <= 0
+    pm_error('Simscape:GreaterThanZero', 'Cross-sectional area at ports A and B')
+end
+if min_area <= 0
+    pm_error('Simscape:GreaterThanZero', 'Minimum restriction area')
+end
+if min_area >= area
+    pm_error('Simscape:LessThan', 'Minimum restriction area', 'Cross-sectional area at ports A and B')
+end
+if max_area >= area
+    pm_error('Simscape:LessThan', 'Maximum restriction area', 'Cross-sectional area at ports A and B')
+end
+if max_area < min_area
+    pm_error('Simscape:GreaterThanOrEqual', 'Maximum restriction area', 'Minimum restriction area')
+end
+if Cd <= 0
+    pm_error('Simscape:GreaterThanZero', 'Discharge coefficient')
+end
+if B_lam <= 0
+    pm_error('Simscape:GreaterThanZero', 'Laminar flow pressure ratio')
+end
+if B_lam >= 1
+    pm_error('Simscape:LessThan', 'Laminar flow pressure ratio', '1')
+end
+
+flow_area_A = area;
+flow_area_B = area;
+
+end
+
+equations
+    let
+        % Domain parameters
+        R_da      = A.R_da;
+        R_w       = A.R_w;
+        T_ref     = A.T_ref;
+        h_da_ref  = A.h_da_ref;
+        h_w_ref   = A.h_w_ref;
+        cp_da_ref = A.cp_da_ref;
+        cp_w_ref  = A.cp_w_ref;
+
+        % Across variables
+        p_A = A.p;
+        p_B = B.p;
+
+        % The restriction area saturates at the minimum and maximum areas.
+        restriction_area = ...
+            if AR <= min_area, ...
+                min_area ...
+            elseif AR >= max_area, ...
+                max_area ...
+            else ...
+                AR ...
+            end;
+
+        % Ratio of restriction area to pipe area
+        area_ratio = restriction_area/area;
+
+        % Mixture properties
+        h_ref  = (1 - x_w_avg)*h_da_ref  + x_w_avg*h_w_ref;
+        cp_ref = (1 - x_w_avg)*cp_da_ref + x_w_avg*cp_w_ref;
+        R      = (1 - x_w_avg)*R_da      + x_w_avg*R_w;
+
+        % Average pressure
+        p_avg = (p_A + p_B)/2;
+
+        % Constant mixture properties due to adiabatic assumption
+        h_avg = h_out;
+        x_w_avg = x_w_out;
+        T_avg = T_ref + (h_avg - h_ref)/cp_ref;
+
+        % Mass flow rate threshold for flow transition from laminar to turbulent
+        delta_p_lam = p_avg * (1 - B_lam);
+        mdot_lam_square = delta_p_lam * (2 * rho_avg * Cd^2 * restriction_area^2) / (1 - area_ratio^2);
+
+        % In turbulent regime, pressure drop is quadratic with respect to mass flow rate
+        % In laminar regime, pressure drop is linear with respect to mass flow rate
+        % Modify mass flow rate squared to model transitional smoothly
+        mdot_square = mdot_A * sqrt(mdot_A^2 + mdot_lam_square);
+    in
+        % Mass flow rate through the flow area restriction
+        p_A - p_B == mdot_square * (1 - area_ratio^2) / (2 * rho_avg * Cd^2 * restriction_area^2);
+
+        % Ideal gas law
+        p_avg == rho_avg * R * T_avg;
+
+        % Mass balance
+        mdot_A   + mdot_B   == 0;
+        mdot_w_A + mdot_w_B == 0;
+
+        % Energy balance
+        Phi_A + Phi_B == 0;
+    end
+end
+
+end

@@ -1,0 +1,233 @@
+component ThreePortChamber < HVAC.ThreePortBase
+% Three-Port Chamber : 1.5
+% This block models constant volume of moist air with three connections to
+% a moist air network. The pressure, temperature, and relative humidity
+% evolve based on the compressibility, thermal capacity, and vapor pressure
+% of this moist air volume. Liquid water condenses out of the moist air
+% volume when relative humidity reaches one.
+%
+% The rate of moisture gain [kg/s] in the moist air volume and the
+% temperature of the added moisture [K] are set by the physical signal
+% ports Wi and Tw, respectively. The physical signal ports Wo and RH report
+% the rate of condensation [kg/s] and the relative humidity of the moist
+% air volume, respectively.
+%
+% Ports A, B, and C are the moist air conserving ports associated with the
+% chamber inlets. Port H is the thermal conserving port associated with
+% moist air volume inside the chamber.
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    H = foundation.thermal.thermal; % H:top
+end
+
+inputs
+    % Rate of moisture addition
+    Wi = {0,      'kg/s'}; % Wi:bottom
+    % Temperature of added moisture
+    Tw = {303.15, 'K'   }; % Tw:bottom
+end
+
+outputs
+    % Rate of condensation
+    Wo = {0,   'kg/s'}; % Wo:bottom
+    % Relative humidity
+    RH = {0.5, '1'   }; % RH:bottom
+end
+
+parameters
+    volume        = {0.001, 'm^3'}; % Chamber volume
+    area_A        = {0.01,  'm^2'}; % Cross-sectional area at port A
+    area_B        = {0.01,  'm^2'}; % Cross-sectional area at port B
+    area_C        = {0.01,  'm^2'}; % Cross-sectional area at port C
+    time_constant = {1e-3,  's'  }; % Condensation time constant
+end
+
+variables
+    % Default initial conditions
+    p_I  = {value = {101.325, 'kPa'}, priority = priority.high}; % Pressure of moist air volume
+    T_I  = {value = {293.15,  'K'  }, priority = priority.high}; % Temperature of moist air volume
+    RH_I = {value = {0.5,     '1'  }, priority = priority.high}; % Relative humidity of moist air volume
+end
+
+variables (ExternalAccess=observe)
+    Q_H   = {0,   'kW'    }; % Heat flow rate into port H
+    rho_I = {1.2, 'kg/m^3'}; % Density of moist air volume
+end
+
+variables (ExternalAccess=none)
+    x_w_sat     = {0.01, '1'}; % Water vapor mass fraction at saturation
+    log_p_w_sat = {8,    '1'}; % Log of water vapor saturation pressure
+end
+
+function setup
+
+if volume <= 0
+    pm_error('Simscape:GreaterThanZero', 'Chamber volume')
+end
+if area_A <= 0
+    pm_error('Simscape:GreaterThanZero', 'Cross-sectional area at port A')
+end
+if area_B <= 0
+    pm_error('Simscape:GreaterThanZero', 'Cross-sectional area at port B')
+end
+if area_C <= 0
+    pm_error('Simscape:GreaterThanZero', 'Cross-sectional area at port C')
+end
+if time_constant <= 0
+    pm_error('Simscape:GreaterThanZero', 'Condensation time constant')
+end
+
+flow_area_A = area_A;
+flow_area_B = area_B;
+flow_area_C = area_C;
+
+end
+
+branches
+    Q_H : H.Q -> *;
+end
+
+equations
+    let
+        % Domain parameters
+        R_da          = A.R_da;
+        R_w           = A.R_w;
+        p_w_sat_coeff = A.p_w_sat_coeff;
+        T_ref         = A.T_ref;
+        h_da_ref      = A.h_da_ref;
+        h_w_ref       = A.h_w_ref;
+        h_l_ref       = A.h_l_ref;
+        cp_da_ref     = A.cp_da_ref;
+        cp_w_ref      = A.cp_w_ref;
+        cp_l_ref      = A.cp_l_ref;
+        T_min         = A.T_min;
+        T_max         = A.T_max;
+
+        % Across variables
+        p_A = A.p;
+        p_B = B.p;
+        p_C = C.p;
+        T_H = H.T;
+
+        % Partial derivatives of mass
+        % with respect to pressure, temperature, and water vapor mass fraction
+        % at constant volume
+        dMdp = volume * rho_I / p_I;
+        dMdT = -volume * rho_I / T_I;
+        dMdx = volume * rho_I * (R_da - R_w) / R;
+
+        % Partial derivatives of internal energy
+        % with respect to pressure, temperature, and water vapor mass fraction
+        % at constant volume
+        dUdp = volume * (h_I / (R * T_I) - 1);
+        dUdT = volume * rho_I * (cp_ref - h_I/T_I);
+        dUdx = volume * rho_I * ((R_da - R_w)*h_I/R - h_da_I + h_w_I);
+
+        % Dry air and water vapor specific enthalpies
+        h_da_I = h_da_ref + cp_da_ref*(T_I - T_ref);
+        h_w_I  = h_w_ref  + cp_w_ref *(T_I - T_ref);
+
+        % Mixture properties
+        cp_ref = (1 - x_w_I)*cp_da_ref + x_w_I*cp_w_ref;
+        R      = (1 - x_w_I)*R_da      + x_w_I*R_w;
+
+        % Mixture specific enthalpy and water vapor mass fraction
+        % of moist air volume is equal to those for outflow
+        h_I   = h_out;
+        x_w_I = x_w_out;
+
+        % Water vapor partial pressure
+        p_w_sat = {exp(log_p_w_sat), 'Pa'};
+        p_w_I = RH_I * p_w_sat;
+
+        % Temperature value in Kelvin
+        T_I_val = value(T_I, 'K');
+
+        % Added moisture specific enthalpy
+        % Temperature saturates at the minimum and maximum valid temperature
+        T_w_in = ...
+            if Tw <= T_min, ...
+                T_min ...
+            elseif Tw >= T_max, ...
+                T_max ...
+            else ...
+                Tw ...
+            end;
+        h_w_in = h_w_ref + cp_w_ref*(T_w_in - T_ref);
+
+        % Rate of moisture gain
+        mdot_w_in = Wi;
+
+        % Added moisture energy flow rate
+        Phi_w_in = mdot_w_in*h_w_in;
+
+        % Rate of condensation
+        mdot_l_out = Wo;
+
+        % Removed liquid water specific enthalpy
+        h_l_out = h_l_ref + cp_l_ref*(T_I - T_ref);
+
+        % Removed liquid water energy flow rate
+        Phi_l_out = mdot_l_out*h_l_out;
+    in
+        assert(A.p >= A.p_min, 'Pressure of moist air volume must be greater than or equal to Minimum valid pressure')
+        assert(A.p <= A.p_max, 'Pressure of moist air volume must be less than or equal to Maximum valid pressure')
+        assert(A.T >= A.T_min, 'Temperature of moist air volume must be greater than or equal to Minimum valid temperature')
+        assert(A.T <= A.T_max, 'Temperature of moist air volume must be less than or equal to Maximum valid temperature')
+
+        % Assume no flow resistance
+        p_A == p_I;
+        p_B == p_I;
+        p_C == p_I;
+
+        % Assume no thermal resistance
+        T_H == T_I;
+
+        % Mass conservation
+        der(p_I)*dMdp + der(T_I)*dMdT + der(x_w_I)*dMdx == ...
+            mdot_A + mdot_B + mdot_C + mdot_w_in - mdot_l_out;
+
+        % Energy conservation
+        der(p_I)*dUdp + der(T_I)*dUdT + der(x_w_I)*dUdx == ...
+            Phi_A + Phi_B + Phi_C + Q_H + Phi_w_in - Phi_l_out;
+
+        % Water vapor mass conservation
+        der(x_w_I)*rho_I*volume + x_w_I*(mdot_A + mdot_B + mdot_C + mdot_w_in - mdot_l_out) == ...
+            mdot_w_A + mdot_w_B + mdot_w_C + mdot_w_in - mdot_l_out;
+
+        % Rate of condensation
+        if ge(x_w_I, x_w_sat)
+            mdot_l_out == (x_w_I - x_w_sat) * rho_I * volume / time_constant;
+        else
+            mdot_l_out == 0;
+        end
+
+        % Ideal gas law
+        p_I == rho_I * R * T_I;
+
+        % Mixture specific enthalpy
+        h_I == (1 - x_w_I)*h_da_I + x_w_I*h_w_I;
+
+        % Water vapor mass fraction
+        x_w_I * R_w * (p_I - p_w_I) == (1 - x_w_I) * R_da * p_w_I;
+
+        % Water vapor mass fraction at saturation
+        x_w_sat * R_w * (p_I - p_w_sat) == (1 - x_w_sat) * R_da * p_w_sat;
+
+        % Water vapor saturation pressure
+        log_p_w_sat == ...
+            p_w_sat_coeff(1)/T_I_val + ...
+            p_w_sat_coeff(2) + ...
+            p_w_sat_coeff(3)*T_I_val + ...
+            p_w_sat_coeff(4)*T_I_val^2 + ...
+            p_w_sat_coeff(5)*T_I_val^3 + ...
+            p_w_sat_coeff(6)*log(T_I_val);
+
+        % Relative humidity measurement
+        RH == RH_I;
+    end
+end
+
+end

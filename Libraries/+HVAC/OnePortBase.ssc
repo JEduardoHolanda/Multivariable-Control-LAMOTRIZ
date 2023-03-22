@@ -1,0 +1,106 @@
+component (Hidden=true) OnePortBase
+% One-Port Base Component
+% This block calculates the energy flow rates and water vapor mass flow
+% rates through the ports based on a smoothed upwind method. It is a base
+% class that is extended by other blocks.
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    A = HVAC.MoistAir; % A:top
+end
+
+parameters (ExternalAccess=observe)
+    flow_area_A = {0.01, 'm^2'}; % Cross-sectional area at port A (value must be set by derived components)
+end
+
+variables (ExternalAccess=observe)
+    mdot_A   = {1e-6, 'kg/s'}; % Mixture mass flow rate into port A
+    Phi_A    = {0,    'kW'  }; % Energy flow rate into port A
+    mdot_w_A = {0,    'kg/s'}; % Water vapor mass flow rate into port A
+end
+
+variables (ExternalAccess=none)
+    h_out   = {420,  'kJ/kg'}; % Mixture specific enthalpy for outflow
+    x_w_out = {0.01, '1'    }; % Water vapor mass fraction for outflow
+end
+
+branches
+    mdot_A   : A.mdot   -> *;
+    Phi_A    : A.Phi    -> *;
+    mdot_w_A : A.mdot_w -> *;
+end
+
+equations
+    let
+        % Domain parameters
+        k_ref     = A.k_ref;
+        D_ref     = A.D_ref;
+        rho_ref   = A.rho_ref;
+        T_ref     = A.T_ref;
+        h_da_ref  = A.h_da_ref;
+        h_w_ref   = A.h_w_ref;
+        cp_da_ref = A.cp_da_ref;
+        cp_w_ref  = A.cp_w_ref;
+
+        % Temperature for inflow
+        T_in_A = A.T;
+
+        % Water vapor mass fraction for inflow
+        x_w_in_A = A.x_w;
+
+        % Dry air and water vapor specific enthalpies for inflow
+        h_da_in_A = h_da_ref + cp_da_ref*(T_in_A - T_ref);
+        h_w_in_A  = h_w_ref  + cp_w_ref *(T_in_A - T_ref);
+
+        % Mixture specific enthalpy for inflow
+        h_in_A = (1 - x_w_in_A)*h_da_in_A + x_w_in_A*h_w_in_A;
+
+        % Longitudinal length scale for conduction and diffusion
+        % Approximated as one pipe diameter
+        characteristic_length_A = sqrt(4*flow_area_A/pi);
+
+        % Thermal conductance coefficient
+        % in terms of mixture specific enthalpy difference
+        G_cond_A = k_ref/cp_da_ref * flow_area_A/characteristic_length_A;
+
+        % Water vapor diffusion coefficient
+        % in terms of water vapor mass fraction difference
+        G_diff_A = D_ref*rho_ref * flow_area_A/characteristic_length_A;
+
+        % Smoothed absolute value of mixture mass flow rate for energy flow rate calculations
+        % There can be nonzero energy flow rate at zero mixture mass flow rate due to conduction
+        mdot_abs_cond_A = sqrt(mdot_A^2 + 4*G_cond_A^2);
+
+        % Smoothed absolute value of mixture mass flow rate for water vapor mass flow rate calculations
+        % There can be nonzero water vapor mass flow rate at zero mixture mass flow rate due to diffusion
+        mdot_abs_diff_A = sqrt(mdot_A^2 + 4*G_diff_A^2);
+
+        % Smoothed step functions for energy flow rate during flow reversal
+        % Smoothing is based on conduction heat flow rate which dominates near zero flow
+        % and is negligible otherwise
+        step_plus_cond_A  = (1 + mdot_A/mdot_abs_cond_A)/2;
+        step_minus_cond_A = (1 - mdot_A/mdot_abs_cond_A)/2;
+
+        % Smoothed step function for water vapor mass flow rate during flow reversal
+        % Smoothing is based on diffusion mass flow rate which dominates near zero flow
+        % and is negligible otherwise
+        step_plus_diff_A  = (1 + mdot_A/mdot_abs_diff_A)/2;
+        step_minus_diff_A = (1 - mdot_A/mdot_abs_diff_A)/2;
+    in
+        assert(A.p >= A.p_min, 'Pressure at port A must be greater than or equal to Minimum valid pressure')
+        assert(A.p <= A.p_max, 'Pressure at port A must be less than or equal to Maximum valid pressure')
+        assert(A.T >= A.T_min, 'Temperature at port A must be greater than or equal to Minimum valid temperature')
+        assert(A.T <= A.T_max, 'Temperature at port A must be less than or equal to Maximum valid temperature')
+
+        % Upwind energy flow rate
+        % Normalized by mixture mass flow rate to improve scaling
+        Phi_A/mdot_abs_cond_A == step_plus_cond_A*h_in_A - step_minus_cond_A*h_out;
+
+        % Upwind water vapor mass flow rate
+        % Normalized by mixture mass flow rate to improve scaling
+        mdot_w_A/mdot_abs_diff_A == step_plus_diff_A*x_w_in_A - step_minus_diff_A*x_w_out;
+    end
+end
+
+end

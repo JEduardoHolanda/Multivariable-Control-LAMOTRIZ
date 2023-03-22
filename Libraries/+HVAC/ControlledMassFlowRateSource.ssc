@@ -1,0 +1,48 @@
+component ControlledMassFlowRateSource < HVAC.SourceBase
+% Controlled Mass Flow Rate Source
+% This block represents an ideal mechanical energy source in a moist air
+% network that can maintain a controlled mass flow rate regardless of the
+% pressure differential. The mass flow rate [kg/s] is set by the physical
+% signal port M. A positive value causes moist air to flow from port A to
+% port B. There is no flow resistance and no heat exchange with the
+% environment.
+
+% Copyright 2017 The MathWorks, Inc.
+
+inputs
+    % Mass flow rate
+    M = {0, 'kg/s'}; % M:left
+end
+
+parameters
+    area_A = {0.01, 'm^2'}; % Cross-sectional area at port A
+    area_B = {0.01, 'm^2'}; % Cross-sectional area at port B
+end
+
+function setup
+
+if area_A <= 0
+    pm_error('Simscape:GreaterThanZero', 'Cross-sectional area at port A')
+end
+if area_B <= 0
+    pm_error('Simscape:GreaterThanZero', 'Cross-sectional area at port B')
+end
+
+flow_area_A = area_A;
+flow_area_B = area_B;
+
+end
+
+equations
+    % Commanded mass flow rate
+    mdot_A ==  M;
+    mdot_B == -M;
+
+    % Mass balance
+    mdot_w_A + mdot_w_B == 0;
+
+    % Energy balance
+    Phi_A + Phi_B + power == 0;
+end
+
+end

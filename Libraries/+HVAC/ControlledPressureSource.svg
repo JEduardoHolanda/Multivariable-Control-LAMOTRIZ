@@ -1,0 +1,25 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5d -->
+<!-- CreationDate: Wed Apr 20 11:17:29 2016 -->
+<!-- Magnification: 1.050 -->
+<svg width="5694" height="5694" xmlns="http://www.w3.org/2000/svg" xmlns:d="http://www.mathworks.com/blockgraphics">
+ <g>
+  <title>Layer 1</title>
+  <!-- Circle -->
+  <circle cx="2834" cy="2834" r="299" stroke-width="8" stroke="#000000" id="svg_2" fill="#000000" d:options="Port:L0" fill-opacity="0"/>
+  <!-- Circle -->
+  <circle cx="2834" cy="2834" r="1653" stroke-width="8" stroke="#000000" id="svg_3" fill="#000000" d:options="Port:L0" fill-opacity="0"/>
+  <!-- Line -->
+  <polyline points="4488,2834 3685,2362 3685,3307 4488,2834 " stroke-width="8" stroke="#000000" id="svg_4" d:options="Port:R0" fill-opacity="0"/>
+  <!-- Line -->
+  <polyline points="4251,472 3590,897 4157,1228 4251,472 " fill="#000000" stroke-width="8" stroke="#000000" id="svg_5" d:options="Port:L1"/>
+  <!-- Line: box -->
+  <rect x="0" y="0" width="5669" height="5669" stroke-width="8" stroke="#ffffff" id="svg_6" fill="#000000" fill-opacity="0"/>
+  <!-- Line -->
+  <polyline points="4488,2834 5669,2834 " stroke-width="8" stroke="#000000" id="svg_7" d:options="Port:R0" fill-opacity="0"/>
+  <!-- Line -->
+  <polyline points="0,1417 236,1417 708,2834 1181,2834 " stroke-width="8" stroke="#000000" id="svg_8" d:options="Port:L0" fill-opacity="0"/>
+  <!-- Line -->
+  <polyline points="0,4251 1984,4251 4251,472 " stroke-width="8" stroke="#000000" id="svg_9" d:options="Port:L1" fill-opacity="0"/>
+ </g>
+</svg>

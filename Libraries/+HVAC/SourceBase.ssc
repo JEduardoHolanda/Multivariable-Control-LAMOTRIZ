@@ -1,0 +1,67 @@
+component (Hidden=true) SourceBase < HVAC.TwoPortBase
+% Source Base Component
+% This block calculates the work done on the moist air by the source. It is
+% a base class that is extended by each of the source blocks.
+
+% Copyright 2017 The MathWorks, Inc.
+
+variables (ExternalAccess=observe)
+    power = {0, 'kW'}; % Power added to the flow
+end
+
+variables (Access=private)
+    power_AB = {0,      'kW'}; % Power added for flow from port A to port B
+    power_BA = {0,      'kW'}; % Power added for flow from port B to port A
+    T_out_A  = {293.15, 'K' }; % Temperature for outflow at port A
+    T_out_B  = {293.15, 'K' }; % Temperature for outflow at port B
+end
+
+equations
+    let
+        % Domain parameters
+        R_da      = A.R_da;
+        R_w       = A.R_w;
+        T_ref     = A.T_ref;
+        h_da_ref  = A.h_da_ref;
+        h_w_ref   = A.h_w_ref;
+        cp_da_ref = A.cp_da_ref;
+        cp_w_ref  = A.cp_w_ref;
+
+        % Across variables
+        p_A = A.p;
+        p_B = B.p;
+
+        % Temperature for inflow
+        T_in_A = A.T;
+        T_in_B = B.T;
+
+        % Water vapor mass fraction
+        x_w = x_w_out;
+
+        % Mixture properties
+        h_ref  = (1 - x_w)*h_da_ref  + x_w*h_w_ref;
+        cp_ref = (1 - x_w)*cp_da_ref + x_w*cp_w_ref;
+        R      = (1 - x_w)*R_da      + x_w*R_w;
+
+        % Mixture specific enthalpy
+        h_in_A  = h_ref + cp_ref*(T_in_A  - T_ref);
+        h_in_B  = h_ref + cp_ref*(T_in_B  - T_ref);
+        h_out_A = h_ref + cp_ref*(T_out_A - T_ref);
+        h_out_B = h_ref + cp_ref*(T_out_B - T_ref);
+    in
+        % Isentropic relation between inflow and outflow conditions
+        p_A * (T_out_B/T_ref)^(cp_ref/R) == p_B * (T_in_A/T_ref)^(cp_ref/R);
+        p_B * (T_out_A/T_ref)^(cp_ref/R) == p_A * (T_in_B/T_ref)^(cp_ref/R);
+
+        % Power added to the flow by the source
+        power_AB == mdot_A*(h_out_B - h_in_A);
+        power_BA == mdot_B*(h_out_A - h_in_B);
+        if ge(mdot_A, 0)
+            power == power_AB;
+        else
+            power == power_BA;
+        end
+    end
+end
+
+end

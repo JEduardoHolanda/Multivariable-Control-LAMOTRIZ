@@ -1,0 +1,82 @@
+component HeatExchanger < HVAC.HeatExchangerBase
+% Heat Exchanger : 2
+% This block models an unmixed cross-flow heat exchanger that transfers
+% heat between a moist air network and an external coolant. The coolant is
+% assumed to remain in a single phase. The heat exchanger contains a
+% constant volume of moist air. The pressure, temperature, and relative
+% humidity evolve based on the compressibility, thermal capacity, and vapor
+% pressure of this moist air volume. Liquid water condenses out of the
+% moist air volume when relative humidity reaches one.
+%
+% The coolant temperature [K] and the coolant capacity rate (mass flow rate
+% times specific heat) [W/K] are set by the physical signal ports T2 and
+% C2, respectively. The physical signal ports Wo and RH report the rate of
+% condensation [kg/s] and the relative humidity of the moist air volume,
+% respectively.
+%
+% Ports A and B are the moist air conserving ports associated with the
+% inlet and outlet of the moist air side of the heat exchanger.
+
+% Copyright 2017 The MathWorks, Inc.
+
+inputs
+    % Coolant tempearture
+    T2 = {293.15, 'K'  }; % T2:left
+    % Coolant heat capacity rate
+    C2 = {0,      'W/K'}; % C2:left
+end
+
+variables (ExternalAccess=observe)
+    C_min         = {1, 'kW/K'}; % Minimum heat capacity rate
+    C_max         = {1, 'kW/K'}; % Maximum heat capacity rate
+    effectiveness = {1, '1'   }; % e-NTU effectiveness factor
+end
+
+equations
+    let
+        % Domain parameters
+        k_ref     = A.k_ref;
+        cp_da_ref = A.cp_da_ref;
+        cp_w_ref  = A.cp_w_ref;
+
+        % Thermal conductance used as lower bound for heat capacity rates
+        characteristic_length = sqrt(4*port_area/pi);
+        G_cond = k_ref * port_area/characteristic_length;
+
+        % Mixture water vapor mass fraction of fluid volume is equal to that for outflow
+        x_w_I = x_w_out;
+
+        % Heat capacity rate
+        mdot1 = (mdot_A - mdot_B)/2;
+        cp_ref = (1 - x_w_I)*cp_da_ref + x_w_I*cp_w_ref;
+        C1 = mdot1 * cp_ref;
+
+        % Smoothed absolute value of heat capacity rate
+        C1_abs = sqrt(C1^2 + G_cond^2);
+        C2_abs = sqrt(C2^2 + G_cond^2);
+
+        % Smooth transition function for the min/max of heat capacity rates
+        transition_min_max = tanh((C2_abs - C1_abs) * 3 / G_cond);
+
+        % Smooth transition function for inlet temperature
+        transition1 = tanh(C1 * 3 / G_cond);
+
+        % Inlet temperature depending on flow direction
+        T1_in = A.T * (1 + transition1)/2 + B.T * (1 - transition1)/2;
+
+        % Temperature of coolant
+        T2_in = if T2 > 0, T2 else {0, 'K'} end;
+    in
+        % Min and max heat capacity rates
+        C_min == C1_abs * (1 + transition_min_max)/2 + C2_abs * (1 - transition_min_max)/2;
+        C_max == C2_abs * (1 + transition_min_max)/2 + C1_abs * (1 - transition_min_max)/2;
+
+        % Effectiveness factor for unmixed cross-flow configuration
+        effectiveness == 1 - exp((exp(- C_min^0.22 * UA^0.78 / C_max) - 1) * UA^0.22 * C_max / C_min^1.22);
+
+        % Heat transfer rate based on e-NTU method
+        Q_hex == effectiveness * C_min * (T2_in - T1_in);
+    end
+end
+
+end

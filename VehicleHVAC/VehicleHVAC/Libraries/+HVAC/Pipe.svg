@@ -1,0 +1,43 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5e -->
+<!-- CreationDate: Mon Feb 13 10:02:32 2017 -->
+<!-- Magnification: 1.050 -->
+<svg width="9474" height="7584" xmlns="http://www.w3.org/2000/svg" xmlns:d="http://www.mathworks.com/blockgraphics">
+ <g>
+  <title>Layer 1</title>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m5356,4251a179,179 0 0 0 0,-358" stroke-width="8" stroke="#000000" id="svg_2"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m5356,3535a179,179 0 0 0 0,-358" stroke-width="8" stroke="#000000" id="svg_3"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m5356,3893a179,179 0 0 1 0,-358" stroke-width="8" stroke="#000000" id="svg_4"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m4978,4251a179,179 0 0 0 0,-358" stroke-width="8" stroke="#000000" id="svg_5"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m4978,3535a179,179 0 0 0 0,-358" stroke-width="8" stroke="#000000" id="svg_6"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m4978,3893a179,179 0 0 1 0,-358" stroke-width="8" stroke="#000000" id="svg_7"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m4566,4251a179,179 0 0 0 0,-358" stroke-width="8" stroke="#000000" id="svg_8"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m4566,3535a179,179 0 0 0 0,-358" stroke-width="8" stroke="#000000" id="svg_9"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L3" fill="#000000" d="m4566,3893a179,179 0 0 1 0,-358" stroke-width="8" stroke="#000000" id="svg_10"/>
+  <!-- Arc -->
+  <path fill-opacity="0" d:options="Port:L0" fill="#000000" d="m7086,1889a1181,1181 0 0 1 0,1890" stroke-width="8" stroke="#000000" id="svg_11"/>
+  <!-- Ellipse -->
+  <ellipse fill-opacity="0" d:options="Port:L0" fill="#000000" rx="470" ry="945" stroke-width="8" stroke="#000000" cy="2835" cx="2360" id="svg_12"/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L3" points="0,6614 4960,6614 4960,4251 " stroke-width="8" stroke="#000000" id="svg_13"/>
+  <!-- Line: box -->
+  <rect fill-opacity="0" fill="#000000" x="0" y="0" width="9448" height="7559" stroke-width="8" stroke="#ffffff" id="svg_14"/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:R0" points="7559,2834 8503,2834 8976,1275 9448,1275 " stroke-width="8" stroke="#000000" id="svg_15"/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" points="2362,1889 7086,1889 " stroke-width="8" stroke="#000000" id="svg_16"/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" points="2362,2834 1417,2834 472,944 0,944 " stroke-width="8" stroke="#000000" id="svg_17"/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" points="2362,3779 7086,3779 " stroke-width="8" stroke="#000000" id="svg_18"/>
+ </g>
+</svg>

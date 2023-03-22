@@ -1,0 +1,31 @@
+component PressureTemperatureSensor
+% Pressure & Temperature Sensor
+% This block measures pressure and temperature in a moist air network.
+% There is no mass or energy flow through the sensor.
+%
+% The physical signal ports P and T report the pressure difference [Pa] and
+% the temperature difference [K], respectively, across the sensor. Positive
+% measurements indicate that the values at port A are greater than the
+% values at port B.
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    A = HVAC.MoistAir; % A:left
+    B = HVAC.MoistAir; % B:right
+end
+
+outputs
+    % Pressure difference of port A relative to port B
+    P = {101325, 'Pa'}; % P:right
+    % Temperature difference of port A relative to port B
+    T = {293.15, 'K' }; % T:right
+end
+
+equations
+    % Measured across variables
+    P == A.p - B.p;
+    T == A.T - B.T;
+end
+
+end

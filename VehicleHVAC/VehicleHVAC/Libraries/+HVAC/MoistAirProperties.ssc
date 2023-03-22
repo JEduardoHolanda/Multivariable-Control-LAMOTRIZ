@@ -1,0 +1,126 @@
+component (Propagation=source) MoistAirProperties
+% Moist Air Properties
+
+% Copyright 2017 The MathWorks, Inc.
+
+nodes
+    A = HVAC.MoistAir; % :right
+end
+
+parameters
+    MM_da   = {28.96546,  'g/mol'  }; % Dry air molar mass
+    MM_w    = {18.015268, 'g/mol'  }; % Water molar mass
+    Ru      = {8.3144598, 'J/mol/K'}; % Universal gas constant
+    mu_ref  = {18,        'uPa*s'  }; % Average dynamic viscosity
+    k_ref   = {26,        'mW/m/K' }; % Average thermal conductivity
+    D_ref   = {25,        'mm^2/s' }; % Average water vapor diffusivity in air
+
+    % Data from ASHRAE Handbook Fundamentals 2013
+    % Valid from 0 degC to 200 degC
+    % ln(p) = c1/T + c2 + c3*T + c4*T^2 + c5*T^3 + c6*ln(T)
+    % p in Pa, T in K
+    p_w_sat_coeff = {[
+        -5.8002206e+03
+        +1.3914993e+00
+        -4.8640239e-02
+        +4.1764768e-05
+        -1.4452093e-08
+        +6.5459673e+00
+        ], '1'}; % Water vapor saturation pressure correlation coefficients
+
+    T_ref     = {293.15, 'K'      }; % Reference temperature for fluid properties
+    h_da_ref  = {20.12,  'kJ/kg'  }; % Dry air specific enthalpy at reference temperature
+    h_w_ref   = {2538.2, 'kJ/kg'  }; % Saturated water vapor specific enthalpy at reference temperature
+    h_l_ref   = {83.72,  'kJ/kg'  }; % Saturated liquid water specific enthalpy at reference temperature
+    cp_da_ref = {1.006,  'kJ/kg/K'}; % Dry air specific heat at constant pressure
+    cp_w_ref  = {1.86,   'kJ/kg/K'}; % Saturated water vapor specific heat at constant pressure
+    cp_l_ref  = {4.186,  'kJ/kg/K'}; % Saturated liquid water specific heat at constant pressure
+
+    p_min = {1,      'kPa'}; % Minimum valid pressure
+    p_max = {100,    'MPa'}; % Maximum valid pressure
+    T_min = {273.15, 'K'  }; % Minimum valid temperature
+    T_max = {473.15, 'K'  }; % Maximum valid temperature
+end
+
+parameters (Access=private)
+    R_da = Ru/MM_da;
+    R_w = Ru/MM_w;
+    rho_ref = {101325, 'Pa'} / R_da / {293.15, 'K'};
+end
+
+function setup
+
+if MM_da <= 0
+    pm_error('Simscape:GreaterThanZero', 'Dry air molar mass')
+end
+if MM_w <= 0
+    pm_error('Simscape:GreaterThanZero', 'Water molar mass')
+end
+if Ru <= 0
+    pm_error('Simscape:GreaterThanZero', 'Universal gas constant')
+end
+if mu_ref <= 0
+    pm_error('Simscape:GreaterThanZero', 'Average dynamic viscosity')
+end
+if k_ref <= 0
+    pm_error('Simscape:GreaterThanZero', 'Average thermal conductivity')
+end
+if D_ref <= 0
+    pm_error('Simscape:GreaterThanZero', 'Average water vapor diffusivity in air')
+end
+if length(p_w_sat_coeff) ~= 6
+    pm_error('Simscape:LengthEqual', 'Water vapor saturation pressure correlation coefficients', '6')
+end
+if T_ref <= 0
+    pm_error('Simscape:GreaterThanZero', 'Reference temperature for fluid properties')
+end
+if cp_da_ref <= 0
+    pm_error('Simscape:GreaterThanZero', 'Dry air specific heat at constant pressure')
+end
+if cp_w_ref <= 0
+    pm_error('Simscape:GreaterThanZero', 'Saturated water vapor specific heat at constant pressure')
+end
+if cp_l_ref <= 0
+    pm_error('Simscape:GreaterThanZero', 'Saturated liquid water specific heat at constant pressure')
+end
+if p_min <= 0
+    pm_error('Simscape:GreaterThanZero', 'Minimum valid pressure')
+end
+if p_max <= p_min
+    pm_error('Simscape:GreaterThan', 'Maximum valid pressure', 'Minimum valid pressure')
+end
+if T_min <= 0
+    pm_error('Simscape:GreaterThanZero', 'Minimum valid temperature')
+end
+if T_max <= T_min
+    pm_error('Simscape:GreaterThan', 'Maximum valid temperature', 'Minimum valid temperature')
+end
+
+A.MM_da   = MM_da;
+A.MM_w    = MM_w;
+A.Ru      = Ru;
+A.R_da    = R_da;
+A.R_w     = R_w;
+A.mu_ref  = mu_ref;
+A.k_ref   = k_ref;
+A.D_ref   = D_ref;
+A.rho_ref = rho_ref;
+
+A.p_w_sat_coeff = p_w_sat_coeff;
+
+A.T_ref     = T_ref;
+A.h_da_ref  = h_da_ref;
+A.h_w_ref   = h_w_ref;
+A.h_l_ref   = h_l_ref;
+A.cp_da_ref = cp_da_ref;
+A.cp_w_ref  = cp_w_ref;
+A.cp_l_ref  = cp_l_ref;
+
+A.p_min = p_min;
+A.p_max = p_max;
+A.T_min = T_min;
+A.T_max = T_max;
+
+end
+
+end

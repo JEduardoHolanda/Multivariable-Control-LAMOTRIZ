@@ -1,0 +1,351 @@
+component Pipe < HVAC.TwoPortBase
+% Pipe : 2.5
+% This block models pipe flow dynamics in a moist air network due to
+% viscous friction losses and convective heat transfer with the pipe wall
+% in a moist air network. The pipe contains a constant volume of moist air.
+% The pressure, temperature, and relative humidity evolve based on the
+% compressibility, thermal capacity, and vapor pressure of this moist air
+% volume. Liquid water condenses out of the moist air volume when relative
+% humidity reaches one.
+%
+% The rate of moisture gain [kg/s] in the moist air volume and the
+% temperature of the added moisture [K] are set by the physical signal
+% ports Wi and Tw, respectively. The physical signal ports Wo and RH report
+% the rate of condensation [kg/s] and the relative humidity of the moist
+% air volume, respectively.
+%
+% Ports A and B are the moist air conserving ports associated with the pipe
+% inlet and outlet. Port H is the thermal conserving port associated with
+% pipe wall.
+
+% Copyright 2017 The MathWorks, Inc.
+
+inputs
+    % Rate of moisture gain
+    Wi = {0,      'kg/s'}; % Wi:left
+    % Temperature of added moisture
+    Tw = {303.15, 'K'   }; % Tw:left
+end
+
+outputs
+    % Rate of condensation
+    Wo = {0,   'kg/s'}; % Wo:right
+    % Relative humidity
+    RH = {0.5, '1'   }; % RH:right
+end
+
+nodes
+    H = foundation.thermal.thermal; % H:left
+end
+
+parameters
+    length        = {5,     'm'  }; % Pipe length
+    area          = {0.01,  'm^2'}; % Cross-sectional area
+    Dh            = {0.1,   'm'  }; % Hydraulic diameter
+    length_add    = {0.1,   'm'  }; % Aggregate equivalent length of local resistances
+    roughness     = {15e-6, 'm'  }; % Internal surface absolute roughness
+    Re_lam        = {2000,  '1'  }; % Laminar flow upper Reynolds number limit
+    Re_tur        = {4000,  '1'  }; % Turbulent flow lower Reynolds number limit
+    shape_factor  = {64,    '1'  }; % Shape factor for laminar flow viscous friction
+    Nu_lam        = {3.66,  '1'  }; % Nusselt number for laminar flow heat transfer
+    time_constant = {1e-3,  's'  }; % Condensation time constant
+end
+
+parameters (Access=private)
+    volume             = area * length;       % Pipe volume
+    surface_area       = (4*area/Dh)*length;  % Pipe surface area
+    length_effective   = length + length_add; % Effective length for viscous friction calculation
+    roughness_relative = roughness/Dh;        % Relative roughness
+end
+
+variables
+    % Default initial conditions
+    p_I  = {value = {101.325, 'kPa'}, priority = priority.high}; % Pressure of moist air volume
+    T_I  = {value = {293.15,  'K'  }, priority = priority.high}; % Temperature of moist air volume
+    RH_I = {value = {0.5,     '1'  }, priority = priority.high}; % Relative humidity of moist air volume
+end
+
+variables (ExternalAccess=observe)
+    Q_H   = {0,   'kW'    }; % Heat flow rate into port H
+    rho_I = {1.2, 'kg/m^3'}; % Density of moist air volume
+end
+
+variables (ExternalAccess=none)
+    x_w_sat         = {0.01, '1'  }; % Water vapor mass fraction at saturation
+    log_p_w_sat     = {8,    '1'  }; % Log of water vapor saturation pressure
+    pressure_loss_A = {0,    'kPa'}; % Pressure loss due to viscous friction for the port A half
+    pressure_loss_B = {0,    'kPa'}; % Pressure loss due to viscous friction for the port B half
+end
+
+function setup
+
+if length <= 0
+    pm_error('Simscape:GreaterThanZero', 'Pipe length')
+end
+if area <= 0
+    pm_error('Simscape:GreaterThanZero', 'Cross-sectional area')
+end
+if Dh <= 0
+    pm_error('Simscape:GreaterThanZero', 'Hydraulic diameter')
+end
+if length_add < 0
+    pm_error('Simscape:GreaterThanOrEqualToZero', 'Aggregate equivalent length of local resistances')
+end
+if roughness <= 0
+    pm_error('Simscape:GreaterThanZero', 'Internal surface absolute roughness')
+end
+if Re_lam <= 0
+    pm_error('Simscape:GreaterThanZero', 'Laminar flow upper Reynolds number limit')
+end
+if Re_tur <= Re_lam
+    pm_error('Simscape:GreaterThan', 'Turbulent flow lower Reynolds number limit', 'Laminar flow upper Reynolds number limit')
+end
+if Nu_lam <= 0
+    pm_error('Simscape:GreaterThanZero', 'Nusselt number for laminar flow heat transfer')
+end
+if time_constant <= 0
+    pm_error('Simscape:GreaterThanZero', 'Condensation time constant')
+end
+
+flow_area_A = area;
+flow_area_B = area;
+
+end
+
+branches
+    Q_H : H.Q -> *;
+end
+
+equations
+    let
+        % Domain parameters
+        R_da          = A.R_da;
+        R_w           = A.R_w;
+        mu_ref        = A.mu_ref;
+        k_ref         = A.k_ref;
+        p_w_sat_coeff = A.p_w_sat_coeff;
+        T_ref         = A.T_ref;
+        h_da_ref      = A.h_da_ref;
+        h_w_ref       = A.h_w_ref;
+        h_l_ref       = A.h_l_ref;
+        cp_da_ref     = A.cp_da_ref;
+        cp_w_ref      = A.cp_w_ref;
+        cp_l_ref      = A.cp_l_ref;
+        T_min         = A.T_min;
+        T_max         = A.T_max;
+
+        % Across variables
+        p_A = A.p;
+        p_B = B.p;
+        T_H = H.T;
+
+        % Absolute value of mass flow rate
+        mdot_abs_A = if ge(mdot_A, 0), mdot_A else -mdot_A end;
+        mdot_abs_B = if ge(mdot_B, 0), mdot_B else -mdot_B end;
+
+        % Reynolds numbers
+        % >= 1 to avoid division by zero
+        Re_A0 = (mdot_A * Dh) / (area * mu_ref);
+        Re_A  = sqrt(Re_A0^2 + 1);
+
+        Re_B0 = (mdot_B * Dh) / (area * mu_ref);
+        Re_B  = sqrt(Re_B0^2 + 1);
+
+        % Smooth transition functions between laminar and turbulent regimes
+        % to ensure continuity of value and derivative
+        Re_A_norm = (Re_A - Re_lam)/(Re_tur - Re_lam);
+        transition_A = 3*Re_A_norm^2 - 2*Re_A_norm^3;
+
+        Re_B_norm = (Re_B - Re_lam)/(Re_tur - Re_lam);
+        transition_B = 3*Re_B_norm^2 - 2*Re_B_norm^3;
+
+        % Laminar regime viscous friction
+        friction_lam_A = mdot_A * mu_ref * shape_factor * length_effective / (4 * rho_I * Dh^2 * area);
+        friction_lam_B = mdot_B * mu_ref * shape_factor * length_effective / (4 * rho_I * Dh^2 * area);
+
+        % Turbulent regime viscous friction
+        friction_tur_A = mdot_A * mdot_abs_A * friction_factor_A * length_effective / (4 * rho_I * Dh * area^2);
+        friction_tur_B = mdot_B * mdot_abs_B * friction_factor_B * length_effective / (4 * rho_I * Dh * area^2);
+
+        % Turbulent pipe flow Darcy friction factor using the Haaland correlation
+        friction_factor_A = 1 / (-1.8 * log10(6.9/Re_A + (roughness_relative/3.7)^1.11) )^2;
+        friction_factor_B = 1 / (-1.8 * log10(6.9/Re_B + (roughness_relative/3.7)^1.11) )^2;
+
+        % Prandtl number
+        Pr_ref = cp_da_ref * mu_ref / k_ref;
+
+        % Turbulent pipe flow Nusselt number using the Gnielinski correlation
+        Re_A1    = if gt(Re_A, 3000), Re_A - 1000 else 2000 end;
+        Nu_tur_A = (friction_factor_A/8 * Re_A1 * Pr_ref) / (1 + 12.7 * sqrt(friction_factor_A/8) * (Pr_ref^(2/3) - 1));
+
+        Re_B1    = if gt(Re_B, 3000), Re_B - 1000 else 2000 end;
+        Nu_tur_B = (friction_factor_B/8 * Re_B1 * Pr_ref) / (1 + 12.7 * sqrt(friction_factor_B/8) * (Pr_ref^(2/3) - 1));
+
+        % Nusselt number
+        Nu_A = ...
+            if le(Re_A, Re_lam), ...
+                Nu_lam ...
+            elseif ge(Re_A, Re_tur), ...
+                Nu_tur_A ...
+            else ...
+                (1-transition_A) * Nu_lam + transition_A * Nu_tur_A ...
+            end;
+
+        Nu_B = ...
+            if le(Re_B, Re_lam), ...
+                Nu_lam ...
+            elseif ge(Re_B, Re_tur), ...
+                Nu_tur_B ...
+            else ...
+                (1-transition_B) * Nu_lam + transition_B * Nu_tur_B ...
+            end;
+
+        % Convective heat transfer coefficient
+        heat_transfer_coeff = (Nu_A + Nu_B)/2 * k_ref / Dh;
+
+        % Change in flow velocity
+        % Assume adiabatic process along each half of pipe
+        % Energy and moisture gain/loss occurs at internal node representing the moist air volume
+        delta_vel_AI = (1/p_I - 1/p_A) * R * T_I * mdot_A / area;
+        delta_vel_BI = (1/p_I - 1/p_B) * R * T_I * mdot_B / area;
+        delta_vel_abs_AI = if gt(delta_vel_AI, 0), delta_vel_AI else {0, 'm/s'} end;
+        delta_vel_abs_BI = if gt(delta_vel_BI, 0), delta_vel_BI else {0, 'm/s'} end;
+
+        % Partial derivatives of mass
+        % with respect to pressure, temperature, and water vapor mass fraction
+        % at constant volume
+        dMdp = volume * rho_I / p_I;
+        dMdT = -volume * rho_I / T_I;
+        dMdx = volume * rho_I * (R_da - R_w) / R;
+
+        % Partial derivatives of internal energy
+        % with respect to pressure, temperature, and water vapor mass fraction
+        % at constant volume
+        dUdp = volume * (h_I / (R * T_I) - 1);
+        dUdT = volume * rho_I * (cp_ref - h_I/T_I);
+        dUdx = volume * rho_I * ((R_da - R_w)*h_I/R - h_da_I + h_w_I);
+
+        % Dry air and water vapor specific enthalpies
+        h_da_I = h_da_ref + cp_da_ref*(T_I - T_ref);
+        h_w_I  = h_w_ref  + cp_w_ref *(T_I - T_ref);
+
+        % Mixture properties
+        cp_ref = (1 - x_w_I)*cp_da_ref + x_w_I*cp_w_ref;
+        R      = (1 - x_w_I)*R_da      + x_w_I*R_w;
+
+        % Mixture specific enthalpy and water vapor mass fraction
+        % of moist air volume is equal to those for outflow
+        h_I   = h_out;
+        x_w_I = x_w_out;
+
+        % Water vapor partial pressure
+        p_w_sat = {exp(log_p_w_sat), 'Pa'};
+        p_w_I = RH_I * p_w_sat;
+
+        % Temperature value in Kelvin
+        T_I_val = value(T_I, 'K');
+
+        % Rate of moisture gain
+        mdot_w_in = Wi;
+
+        % Added moisture specific enthalpy
+        % Temperature saturates at the minimum and maximum valid temperature
+        T_w_in = ...
+            if Tw <= T_min, ...
+                T_min ...
+            elseif Tw >= T_max, ...
+                T_max ...
+            else ...
+                Tw ...
+            end;
+        h_w_in = h_w_ref + cp_w_ref*(T_w_in - T_ref);
+
+        % Added moisture energy flow rate
+        Phi_w_in = mdot_w_in*h_w_in;
+
+        % Rate of condensation
+        mdot_l_out = Wo;
+
+        % Removed liquid water specific enthalpy
+        h_l_out = h_l_ref + cp_l_ref*(T_I - T_ref);
+
+        % Removed liquid water energy flow rate
+        Phi_l_out = mdot_l_out*h_l_out;
+    in
+        assert(A.p >= A.p_min, 'Pressure of moist air volume must be greater than or equal to Minimum valid pressure')
+        assert(A.p <= A.p_max, 'Pressure of moist air volume must be less than or equal to Maximum valid pressure')
+        assert(A.T >= A.T_min, 'Temperature of moist air volume must be greater than or equal to Minimum valid temperature')
+        assert(A.T <= A.T_max, 'Temperature of moist air volume must be less than or equal to Maximum valid temperature')
+
+        % Pressure loss due to viscous friction
+        pressure_loss_A == ...
+            if le(Re_A, Re_lam), ...
+                friction_lam_A ...
+            elseif ge(Re_A, Re_tur), ...
+                friction_tur_A ...
+            else ...
+                (1-transition_A) * friction_lam_A + transition_A * friction_tur_A ...
+            end;
+
+        pressure_loss_B == ...
+            if le(Re_B, Re_lam), ...
+                friction_lam_B ...
+            elseif ge(Re_B, Re_tur), ...
+                friction_tur_B ...
+            else ...
+                (1-transition_B) * friction_lam_B + transition_B * friction_tur_B ...
+            end;
+
+        % Momentum balance
+        p_A - p_I == (mdot_A/area) * delta_vel_abs_AI + pressure_loss_A;
+        p_B - p_I == (mdot_B/area) * delta_vel_abs_BI + pressure_loss_B;
+
+        % Heat transfer between the pipe wall and the moist air
+        Q_H == heat_transfer_coeff * surface_area * (T_H - T_I);
+
+        % Mass conservation
+        der(p_I)*dMdp + der(T_I)*dMdT + der(x_w_I)*dMdx == ...
+            mdot_A + mdot_B + mdot_w_in - mdot_l_out;
+
+        % Energy conservation
+        der(p_I)*dUdp + der(T_I)*dUdT + der(x_w_I)*dUdx == ...
+            Phi_A + Phi_B + Q_H + Phi_w_in - Phi_l_out;
+
+        % Water vapor mass conservation
+        der(x_w_I)*rho_I*volume + x_w_I*(mdot_A + mdot_B + mdot_w_in - mdot_l_out) == ...
+            mdot_w_A + mdot_w_B + mdot_w_in - mdot_l_out;
+
+        % Rate of condensation
+        if ge(x_w_I, x_w_sat)
+            mdot_l_out == (x_w_I - x_w_sat) * rho_I * volume / time_constant;
+        else
+            mdot_l_out == 0;
+        end
+
+        % Ideal gas law
+        p_I == rho_I * R * T_I;
+
+        % Mixture specific enthalpy
+        h_I == (1 - x_w_I)*h_da_I + x_w_I*h_w_I;
+
+        % Water vapor mass fraction
+        x_w_I * R_w * (p_I - p_w_I) == (1 - x_w_I) * R_da * p_w_I;
+
+        % Water vapor mass fraction at saturation
+        x_w_sat * R_w * (p_I - p_w_sat) == (1 - x_w_sat) * R_da * p_w_sat;
+
+        % Water vapor saturation pressure
+        log_p_w_sat == ...
+            p_w_sat_coeff(1)/T_I_val + ...
+            p_w_sat_coeff(2) + ...
+            p_w_sat_coeff(3)*T_I_val + ...
+            p_w_sat_coeff(4)*T_I_val^2 + ...
+            p_w_sat_coeff(5)*T_I_val^3 + ...
+            p_w_sat_coeff(6)*log(T_I_val);
+
+        % Relative humidity measurement
+        RH == RH_I;
+    end
+end
+
+end

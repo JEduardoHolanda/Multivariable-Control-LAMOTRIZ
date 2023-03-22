@@ -1,0 +1,31 @@
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- Creator: fig2dev Version 3.2 Patchlevel 5e -->
+<!-- CreationDate: Mon Feb 13 10:17:24 2017 -->
+<!-- Magnification: 1.050 -->
+<svg width="7584" height="7584" xmlns="http://www.w3.org/2000/svg" xmlns:d="http://www.mathworks.com/blockgraphics">
+ <g>
+  <title>Layer 1</title>
+  <!-- Line: box -->
+  <rect fill-opacity="0" fill="#000000" id="svg_2" stroke="#ffffff" stroke-width="8" height="7559" width="7559" y="0" x="0"/>
+  <!-- Line: box -->
+  <rect fill-opacity="0" d:options="Port:L0" fill="#000000" id="svg_3" stroke="#000000" stroke-width="8" height="4251" width="4724" y="944" x="1417"/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" id="svg_4" stroke="#000000" stroke-width="8" points="1417,2362 6141,2362 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" id="svg_5" stroke="#000000" stroke-width="8" points="1417,3779 6141,3779 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L1" id="svg_6" stroke="#000000" stroke-width="8" points="2362,472 2362,5669 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L1" id="svg_7" stroke="#000000" stroke-width="8" points="3070,472 3070,5669 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L1" id="svg_8" stroke="#000000" stroke-width="8" points="3779,472 3779,5669 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L1" id="svg_9" stroke="#000000" stroke-width="8" points="4488,472 4488,5669 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L1" id="svg_10" stroke="#000000" stroke-width="8" points="5196,472 5196,5669 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:L0" id="svg_11" stroke="#000000" stroke-width="8" points="0,1275 1417,1275 "/>
+  <!-- Line -->
+  <polyline fill-opacity="0" d:options="Port:R0" id="svg_12" stroke="#000000" stroke-width="8" points="6141,1275 7559,1275 "/>
+ </g>
+</svg>
